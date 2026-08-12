@@ -1,0 +1,8 @@
+openai
+pydantic
+pypdf
+openpyxl
+python-dotenv
+streamlit
+Flask
+
