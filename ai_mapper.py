@@ -6,14 +6,31 @@ from openai import OpenAI
 from schemas import ExtractedDocument
 
 
+# ============================================================
+# LOAD ENVIRONMENT
+# ============================================================
+
 load_dotenv()
 
+
+# ============================================================
+# AI MAPPER
+# ============================================================
 
 class AIMapper:
 
     def __init__(self):
 
-        api_key = os.getenv("OPENAI_API_KEY")
+        # ====================================================
+        # TEMPORARY HARDCODED API KEY
+        # ====================================================
+        # Replace the value below with your NEW OpenAI API key.
+        #
+        # IMPORTANT:
+        # Do NOT use the API key that GitHub previously detected.
+        # ====================================================
+
+        api_key = "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"
 
         if not api_key:
             raise ValueError(
@@ -29,6 +46,11 @@ class AIMapper:
             "gpt-4.1"
         )
 
+
+    # ========================================================
+    # MAP DOCUMENT
+    # ========================================================
+
     def map_document(
         self,
         document_text: str
@@ -43,10 +65,6 @@ and populate TWO separate sections:
 
 1. Summary Details
 2. Litigation Tracker
-
-==================================================
-SUMMARY DETAILS
-==================================================
 
 Extract one company/entity-level summary.
 
@@ -64,10 +82,6 @@ There must be ONLY ONE Summary Details object.
 
 Do not create multiple summaries just because
 the company appears multiple times in the document.
-
-==================================================
-LITIGATION TRACKER
-==================================================
 
 Identify every DISTINCT litigation/proceeding
 matter in the document.
@@ -93,10 +107,6 @@ multiple times in the PDF, combine the information
 into ONE event.
 
 DO NOT create duplicate events.
-
-==================================================
-EXTRACTION RULES
-==================================================
 
 1. Extract only information actually present
    in the document.
@@ -144,10 +154,6 @@ EXTRACTION RULES
 
 15. Keep Issue concise but sufficiently descriptive.
 
-==================================================
-QUALITY CONTROL
-==================================================
-
 Before returning the result:
 
 - Check that there is exactly one summary.
@@ -159,6 +165,10 @@ Before returning the result:
   has not been converted into litigation events.
 - Check that all available fields are populated.
 """
+
+        # ====================================================
+        # OPENAI STRUCTURED OUTPUT
+        # ====================================================
 
         response = self.client.responses.parse(
             model=self.model,
@@ -180,5 +190,9 @@ Before returning the result:
 
             text_format=ExtractedDocument
         )
+
+        # ====================================================
+        # RETURN PYDANTIC RESULT
+        # ====================================================
 
         return response.output_parsed
