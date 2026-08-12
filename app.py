@@ -1,7 +1,5 @@
 import json
 import tempfile
-from pathlib import Path
-import os
 
 import streamlit as st
 
@@ -10,44 +8,43 @@ from ai_mapper import AIMapper
 from excel_generator import ExcelGenerator
 
 
-# ============================================================
-# CONFIGURATION
-# ============================================================
-
-
 st.set_page_config(
     page_title="Tax Document Mapper",
     layout="wide"
 )
 
 
-# ============================================================
-# BASE DIRECTORY
-# ============================================================
-
-BASE_DIR = Path(__file__).resolve().parent
-
-
-# ============================================================
-# EXACT EXCEL TEMPLATE
-# ============================================================
-
-TEMPLATE_PATH = (
-    BASE_DIR /
-    "Direct_Tax_Proceedings_Template.xlsx"
-)
-
-
-# ============================================================
-# PAGE
-# ============================================================
-
 st.title("Tax Document Mapper")
 
 
-# ============================================================
+# =========================================================
+# DATA PACK NAVIGATION
+# =========================================================
+
+st.markdown(
+    """
+    <a href="http://127.0.0.1:5000/data-pack.html"
+       target="_self"
+       style="
+           display:inline-block;
+           padding:10px 18px;
+           background:#1f3e8b;
+           color:white;
+           text-decoration:none;
+           border-radius:6px;
+           font-weight:600;
+           margin-bottom:20px;
+       ">
+        Data Pack HTML
+    </a>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
 # PDF UPLOAD
-# ============================================================
+# =========================================================
 
 pdf = st.file_uploader(
     "Select PDF",
@@ -55,9 +52,9 @@ pdf = st.file_uploader(
 )
 
 
-# ============================================================
-# PROCESS
-# ============================================================
+# =========================================================
+# PROCESS PDF
+# =========================================================
 
 if pdf:
 
@@ -65,22 +62,9 @@ if pdf:
 
         try:
 
-            # ==================================================
-            # CHECK TEMPLATE
-            # ==================================================
-
-            if not TEMPLATE_PATH.exists():
-
-                raise FileNotFoundError(
-                    "The Excel template was not found.\n\n"
-                    f"Expected location:\n"
-                    f"{TEMPLATE_PATH}"
-                )
-
-
-            # ==================================================
-            # SAVE PDF TEMPORARILY
-            # ==================================================
+            # -----------------------------------------
+            # Save uploaded PDF temporarily
+            # -----------------------------------------
 
             with tempfile.NamedTemporaryFile(
                 delete=False,
@@ -94,9 +78,9 @@ if pdf:
                 pdf_path = temp.name
 
 
-            # ==================================================
+            # -----------------------------------------
             # PDF → TEXT
-            # ==================================================
+            # -----------------------------------------
 
             with st.spinner(
                 "Reading PDF..."
@@ -111,9 +95,9 @@ if pdf:
                 )
 
 
-            # ==================================================
+            # -----------------------------------------
             # TEXT → AI → PYDANTIC
-            # ==================================================
+            # -----------------------------------------
 
             with st.spinner(
                 "Mapping PDF content..."
@@ -128,9 +112,9 @@ if pdf:
                 )
 
 
-            # ==================================================
+            # -----------------------------------------
             # JSON
-            # ==================================================
+            # -----------------------------------------
 
             json_data = (
                 extracted_data.model_dump(
@@ -139,61 +123,49 @@ if pdf:
             )
 
 
-            # ==================================================
-            # OUTPUT FILE
-            # ==================================================
+            # -----------------------------------------
+            # EXCEL
+            # -----------------------------------------
+
+            template_path = (
+                "Direct_Tax_Proceedings_Template.xlsx"
+            )
 
             output_excel = (
-                BASE_DIR /
                 "Direct_Tax_Proceedings_Output.xlsx"
             )
 
+            generator = ExcelGenerator()
 
-            # ==================================================
-            # TEMPLATE → FILLED EXCEL
-            # ==================================================
-
-            with st.spinner(
-                "Filling the Excel template..."
-            ):
-
-                generator = ExcelGenerator()
-
-                generator.generate(
-                    extracted_data,
-                    str(TEMPLATE_PATH),
-                    str(output_excel)
-                )
+            generator.generate(
+                extracted_data,
+                template_path,
+                output_excel
+            )
 
 
-            # ==================================================
-            # SUCCESS
-            # ==================================================
+            # -----------------------------------------
+            # RESULTS
+            # -----------------------------------------
 
             st.success(
                 "PDF processed successfully."
             )
 
 
-            # ==================================================
-            # LITIGATION COUNT
-            # ==================================================
-
-            litigation_count = len(
-                extracted_data
-                .litigation_tracker
-                .events
-            )
-
             st.write(
                 "Litigation records found:",
-                litigation_count
+                len(
+                    extracted_data
+                    .litigation_tracker
+                    .events
+                )
             )
 
 
-            # ==================================================
+            # -----------------------------------------
             # SUMMARY PREVIEW
-            # ==================================================
+            # -----------------------------------------
 
             st.subheader(
                 "Summary Details"
@@ -206,9 +178,9 @@ if pdf:
             )
 
 
-            # ==================================================
+            # -----------------------------------------
             # LITIGATION PREVIEW
-            # ==================================================
+            # -----------------------------------------
 
             st.subheader(
                 "Litigation Tracker"
@@ -221,49 +193,40 @@ if pdf:
             )
 
 
-            # ==================================================
+            # -----------------------------------------
             # JSON DOWNLOAD
-            # ==================================================
-
-            json_download = json.dumps(
-                json_data,
-                indent=4,
-                ensure_ascii=False
-            )
+            # -----------------------------------------
 
             st.download_button(
                 label="Download JSON",
-                data=json_download,
+                data=json.dumps(
+                    json_data,
+                    indent=4,
+                    ensure_ascii=False
+                ),
                 file_name="extracted_data.json",
                 mime="application/json"
             )
 
 
-            # ==================================================
+            # -----------------------------------------
             # EXCEL DOWNLOAD
-            # ==================================================
+            # -----------------------------------------
 
             with open(
                 output_excel,
                 "rb"
             ) as excel_file:
 
-                excel_data = (
-                    excel_file.read()
+                st.download_button(
+                    label="Download Excel",
+                    data=excel_file,
+                    file_name=output_excel,
+                    mime=(
+                        "application/vnd.openxmlformats-"
+                        "officedocument.spreadsheetml.sheet"
+                    )
                 )
-
-
-            st.download_button(
-                label="Download Completed Excel",
-                data=excel_data,
-                file_name=(
-                    "Direct_Tax_Proceedings_Output.xlsx"
-                ),
-                mime=(
-                    "application/vnd.openxmlformats-"
-                    "officedocument.spreadsheetml.sheet"
-                )
-            )
 
 
         except Exception as error:
